@@ -109,7 +109,102 @@ Analiza el archivo `DataProtectionManager.kt` y responde:
     - Bloquear acceso a secciones sensibles si el sistema no se ha inicializado correctamente.
 
 
+### 1.2 Permisos y Manifiesto (2 puntos)
+Examina `AndroidManifest.xml` y `MainActivity.kt`:
+- Lista todos los permisos peligrosos declarados en el manifiesto
+    
+    ### ✅ Permisos peligrosos declarados en `AndroidManifest.xml`:
+    
+    ```xml
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    ```
+    > Todos estos permisos están categorizados como "peligrosos" por Android, ya que permiten el acceso a información sensible del usuario o a funciones críticas del dispositivo.
 
+
+- ¿Qué patrón se utiliza para solicitar permisos en runtime?
+    La aplicación sigue el patrón moderno de Android Jetpack para solicitar permisos en tiempo de ejecución usando ActivityResultContracts.RequestPermission():
+    
+    ```kotlin
+        private val requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            // Manejo del resultado
+        }
+    
+    ```
+    Además, se verifica previamente con ContextCompat.checkSelfPermission y se maneja el resultado para abrir la actividad correspondiente solo si el permiso fue otorgado:
+
+    ```kotlin
+        if (permission.status == PermissionStatus.GRANTED) {
+            openActivity(permission)
+        } else {
+            requestPermission(permission)
+        }
+
+    
+    ```
+ 
+- Identifica qué configuración de seguridad previene backups automáticos
+
+  En el AndroidManifest.xml, se desactiva explícitamente la funcionalidad de backup automático:
+  
+    ```xml
+        <application
+            android:allowBackup="false"
+            ...
+    ```
+
+### 1.3 Gestión de Archivos (3 puntos)
+Revisa `CameraActivity.kt` y `file_paths.xml`:
+- ¿Cómo se implementa la compartición segura de archivos de imágenes?
+
+    Se utiliza `FileProvider` para generar URIs seguros (`content://`) que apuntan a archivos de imagen creados en almacenamiento externo privado:
+
+    ```kotlin
+    val photoFile = createImageFile()
+    currentPhotoUri = FileProvider.getUriForFile(
+        this,
+        "com.example.seguridad_priv_a.fileprovider",
+        photoFile
+    )
+    takePictureLauncher.launch(currentPhotoUri)
+    ```
+    Además, la ruta segura está declarada en res/xml/file_paths.xml:
+    ```xml
+    <paths xmlns:android="http://schemas.android.com/apk/res/android">
+        <external-files-path name="my_images" path="Pictures" />
+    </paths>
+
+    ```
+    > Esto permite que la aplicación use el almacenamiento externo privado sin exponer rutas reales del sistema de archivos.
+
+
+
+- ¿Qué autoridad se utiliza para el FileProvider?
+    ```xml
+        android:authorities="com.example.seguridad_priv_a.fileprovider"
+    ```
+    > Esta autoridad debe coincidir exactamente con la utilizada en FileProvider.getUriForFile().
+
+- Explica por qué no se debe usar `file://` URIs directamente
+    - Usar URIs como file:// directamente está prohibido a partir de Android 7.0 (API 24) por razones de seguridad. Si una app intenta compartir un file://, se lanza una excepción FileUriExposedException.
+    
+    -Riesgos de usar file://:
+    
+        -- Exposición del sistema de archivos al resto del sistema.
+        
+        -- Acceso inseguro a datos sensibles.
+        
+        -- Incompatibilidad con políticas de seguridad modernas (Android Nougat+).
+        
+        -- ✅ En su lugar, FileProvider genera content:// URIs controlados por la app, que respetan los permisos y límites del sandbox de Android.
 
 ## Licencia
 
