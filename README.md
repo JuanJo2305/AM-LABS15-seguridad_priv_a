@@ -61,6 +61,56 @@ app/
 - `CALL_PHONE` - Realizar llamadas
 - `ACCESS_COARSE_LOCATION` - Ubicación aproximada
 
+
+## ACTIVIDAD
+
+## Parte 1: Análisis de Seguridad Básico (0-7 puntos)
+
+### 1.1 Identificación de Vulnerabilidades (2 puntos)
+Analiza el archivo `DataProtectionManager.kt` y responde:
+- ¿Qué método de encriptación se utiliza para proteger datos sensibles?
+
+    La app usa `AES-256-GCM` para el cifrado de datos, lo cual es una elección sólida porque:
+    - Proporciona confidencialidad mediante AES-256.
+    - Asegura integridad/autenticación gracias al modo GCM.
+    > 🔐 **AES-256-GCM** = Estándar moderno y recomendado para apps móviles.
+
+
+- Identifica al menos 2 posibles vulnerabilidades en la implementación actual del logging
+    #### 1. Acceso sin restricción a los registros
+    ```kotlin
+    val logs = dataProtectionManager.getAccessLogs()
+    binding.tvAccessLogs.text = logsText
+    ```
+    - ❗ Riesgo: Se muestra información sin verificación de identidad.
+    - 🛡️ Mejora: Solicitar autenticación biométrica o pin antes de mostrar logs.
+    
+    #### 2. Registro excesivo o sin límites
+    ```kotlin
+    dataProtectionManager.logAccess("DATA_MANAGEMENT", "Todos los datos borrados por el usuario")
+    ```
+    - ❗ Riesgo: Puede generar fuga de información o llenar el almacenamiento.
+    - 🛡️ Mejora: Implementar retención de logs, niveles de severidad y cifrado si los logs contienen datos sensibles.
+    
+    ---
+
+- ¿Qué sucede si falla la inicialización del sistema de encriptación?
+
+    Actualmente, no se maneja adecuadamente una posible falla al instanciar `DataProtectionManager`.
+    
+    **Consecuencias potenciales**:
+    - `NullPointerException` o fallos inesperados.
+    - Pérdida de registro de accesos.
+    - Desprotección sin alertas al usuario.
+    
+    **Soluciones sugeridas**:
+    - Validar la instancia del manager y capturar excepciones.
+    - Mostrar advertencias si el sistema de cifrado no está disponible.
+    - Bloquear acceso a secciones sensibles si el sistema no se ha inicializado correctamente.
+
+
+
+
 ## Licencia
 
 Este proyecto es para fines educativos y demostrativos.
